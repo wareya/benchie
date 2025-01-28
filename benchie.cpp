@@ -431,7 +431,8 @@ int main(int argc, char ** argv)
                 int new_num_outliers = 0;
                 for (size_t k = 0; k < times[i].size(); k++)
                 {
-                    if (times[i][k] < 0.0 || times[i][k] < outlying_lo || times[i][k] > outlying_hi)
+                    bool bad_lo = times[i][k] < outlying_lo && getenv("YES_LOW_OUTLIER_REJECTION");
+                    if (times[i][k] < 0.0 || bad_lo || times[i][k] > outlying_hi)
                     {
                         new_num_outliers += 1;
                         times[i][k] = -1.0;

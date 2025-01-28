@@ -1,5 +1,5 @@
 # Benchie
-Super tiny single-file benchmark dispatch program. Uses `CreateProcess()` or `exec()`, not `system()`, so a shell is not created for each run. Tested on Windows and Linux, probably supports other unix-like systems too.
+Super tiny single-file benchmark dispatch program. Uses `CreateProcess()` or `exec()`, not `system()`, so a shell is not created for each run. Tested on Windows and Linux, probably supports other unix-like systems too. Uses std::chrono::steady_clock, so system clock stability issues shouldn't negatively impact the numbers often.
 
 Records an array of times and calculates a 99% confidence interval for what the true implied average time is, as well as a histogram. Also reports real CPU time combined between multiple cores (`user`+`sys` in the terminology of the `time` tool), as well as the highest and lowest actually-observed times. Has a default warm up period of 1 run, which can be increased with `-w`. The default number of runs is 10, which can be increased with `-c`.
 

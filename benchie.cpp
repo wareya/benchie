@@ -103,12 +103,17 @@ using namespace std;
         sinfo.cb = sizeof(STARTUPINFO);
         sinfo.dwFlags = STARTF_USESTDHANDLES;
         
-        HANDLE hNul = CreateFile("NUL", GENERIC_WRITE, FILE_SHARE_WRITE, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+        SECURITY_ATTRIBUTES attr = {};
+        attr.nLength = sizeof(SECURITY_ATTRIBUTES); 
+        attr.bInheritHandle = true;
+        
+        HANDLE hNul = CreateFile("NUL", GENERIC_WRITE, FILE_SHARE_WRITE, &attr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+        HANDLE hNul2 = CreateFile("NUL", GENERIC_WRITE, FILE_SHARE_WRITE, &attr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
         sinfo.hStdOutput = hNul;
-        sinfo.hStdError = hNul;
+        sinfo.hStdError = hNul2;
         
         PROCESS_INFORMATION pinfo = {};
-        if (!CreateProcess(0, cmd, 0, 0, 0, 0, 0, 0, &sinfo, &pinfo))
+        if (!CreateProcess(0, cmd, 0, 0, true, 0, 0, 0, &sinfo, &pinfo))
             return -1;
         WaitForSingleObject(pinfo.hProcess, INFINITE);
         
@@ -131,6 +136,7 @@ using namespace std;
         GetExitCodeProcess(pinfo.hProcess, &ret);
         
         CloseHandle(hNul);
+        CloseHandle(hNul2);
         CloseHandle(pinfo.hProcess);
         CloseHandle(pinfo.hThread);
         return ret;

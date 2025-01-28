@@ -214,6 +214,10 @@ double get_conf_r(int degrees)
     return 61.4 / exp(pow((log(log(degrees) + 1.0)) * 18.1, 0.9)) + 2.576;
 }
 
+double lerp(double a, double b, double x)
+{
+    return a*(1.0-x) + b*x;
+}
 double unlerp(double a, double b, double x)
 {
     if (a == b)
@@ -264,7 +268,57 @@ void print_histogram(vector<double> times)
     }
     printf(">");
     for (auto & n : bins)
-        printf("%s", blocks[(int)floor(n/maxbin * 9 * 0.9999999)]);
+    {
+        uint8_t v = (int)floor(n/maxbin * 255 * 0.9999999);
+        struct RGB { int r; int g; int b; };
+        auto false_color = [](float x) -> RGB
+        {
+            x *= 4;
+            float r = 0.0;
+            float g = 0.0;
+            float b = 0.0;
+            if (x < 1)
+                b = x;
+            else if (x < 2)
+            {
+                b = 1-(x-1);
+                r = x-1;
+            }
+            else if (x < 3)
+            {
+                r = 1;
+                g = x-2;
+            }
+            else
+            {
+                r = 1;
+                g = 1;
+                b = x-3;
+            }
+            r = sqrt(r);
+            g = sqrt(g);
+            b = sqrt(b);
+            int _r = (int)round(r*255);
+            int _g = (int)round(g*255);
+            int _b = (int)round(b*255);
+            return RGB{_r, _g, _b};
+        };
+        RGB c = false_color(n/maxbin * 0.9999999);
+        if (getenv("ALTBLOCKS6"))
+        {
+            float temp = c.r;
+            c.r = c.b;
+            c.b = c.g;
+            c.g = temp;
+            printf("\033[38;2;%d;%d;%dm█\033[0m", c.r, c.g, c.b);
+        }
+        else if (getenv("ALTBLOCKS5"))
+            printf("\033[38;2;%d;%d;%dm█\033[0m", c.r, c.g, c.b);
+        else if (getenv("ALTBLOCKS4"))
+            printf("\033[38;2;%d;%d;%dm█\033[0m", v, v, v);
+        else
+            printf("%s", blocks[(int)floor(n/maxbin * 9 * 0.9999999)]);
+    }
     printf("<");
     puts("");
     printf(" ^%s", f2s(lo, 6, c_green));

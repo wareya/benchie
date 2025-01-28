@@ -6,6 +6,7 @@
 #include <vector>
 #include <string>
 #include <chrono>
+#include <functional>
 #include <stdarg.h>
 
 using namespace std;
@@ -266,35 +267,28 @@ void print_histogram(vector<double> times)
         bins[i] += 1.0;
         maxbin = max(maxbin, bins[i]);
     }
+    int runs = 0;
+    hstart:
     printf(">");
+    size_t i = -1;
     for (auto & n : bins)
     {
-        uint8_t v = (int)floor(n/maxbin * 255 * 0.9999999);
+        i++;
+        //n = i/(double)bins.size()*maxbin;
         struct RGB { int r; int g; int b; };
         auto false_color = [](float x) -> RGB
         {
+            if (x < 0.0) x = 0.0;
+            if (x > 1.0) x = 1.0;
             x *= 4;
             float r = 0.0;
             float g = 0.0;
             float b = 0.0;
-            if (x < 1)
-                b = x;
-            else if (x < 2)
-            {
-                b = 1-(x-1);
-                r = x-1;
-            }
-            else if (x < 3)
-            {
-                r = 1;
-                g = x-2;
-            }
-            else
-            {
-                r = 1;
-                g = 1;
-                b = x-3;
-            }
+            if (x < 1) b = x;
+            else if (x < 2) { b = 1-(x-1); r = x-1; }
+            else if (x < 3) { r = 1; g = x-2; }
+            else if (x < 4) { r = 1; g = 1; b = x-3; }
+            else { r = 1; g = 1; b = 1; }
             r = sqrt(r);
             g = sqrt(g);
             b = sqrt(b);
@@ -303,24 +297,53 @@ void print_histogram(vector<double> times)
             int _b = (int)round(b*255);
             return RGB{_r, _g, _b};
         };
-        RGB c = false_color(n/maxbin * 0.9999999);
-        if (getenv("ALTBLOCKS6"))
+        char tempstr[1024];
+        auto get_greycode = [&](double n)
         {
-            float temp = c.r;
-            c.r = c.b;
-            c.b = c.g;
-            c.g = temp;
-            printf("\033[38;2;%d;%d;%dm█\033[0m", c.r, c.g, c.b);
+            if (n < 0.0) n = 0.0;
+            if (n > maxbin) n = maxbin;
+            uint8_t v = (int)floor(n/maxbin * 255 * 0.9999999);
+            snprintf(tempstr, 1000, "\033[38;2;%d;%d;%dm█\033[0m", v, v, v);
+            return tempstr;
+        };
+        auto get_falsecolor1 = [&](double n)
+        {
+            RGB c = false_color(n/maxbin * 0.9999999);
+            snprintf(tempstr, 1000, "\033[38;2;%d;%d;%dm█\033[0m", c.r, c.g, c.b);
+            return tempstr;
+        };
+        auto get_falsecolor2 = [&](double n)
+        {
+            RGB c = false_color(n/maxbin * 0.9999999);
+            float temp = c.r; c.r = c.b; c.b = c.g; c.g = temp;
+            snprintf(tempstr, 1000, "\033[38;2;%d;%d;%dm█\033[0m", c.r, c.g, c.b);
+            return tempstr;
+        };
+        auto get_block = [&](double n) -> char *
+        {
+            if (n < 0.0) n = 0.0;
+            if (n > maxbin) n = getenv("ALTBLOCKS3") ? 0.0 : maxbin;
+            return (char *)blocks[(int)round(n/maxbin * 8 * 0.9999999)];
+        };
+        std::function<char *(double)> func = getenv("ALTBLOCKS6") ? get_falsecolor2 :
+                    getenv("ALTBLOCKS5") ? get_falsecolor1 :
+                    getenv("ALTBLOCKS4") ? get_greycode :
+                    (std::function<char *(double)>)get_block;
+                    
+        if (getenv("DOUBLEBLOCKS"))
+        {
+            double x = n/maxbin*2;
+            printf("%s", func((x+runs-1)*maxbin));//blocks[(int)round((x-1+runs) * 8 * 0.9999999)]);
         }
-        else if (getenv("ALTBLOCKS5"))
-            printf("\033[38;2;%d;%d;%dm█\033[0m", c.r, c.g, c.b);
-        else if (getenv("ALTBLOCKS4"))
-            printf("\033[38;2;%d;%d;%dm█\033[0m", v, v, v);
         else
-            printf("%s", blocks[(int)floor(n/maxbin * 9 * 0.9999999)]);
+            printf("%s", func(n));
     }
     printf("<");
     puts("");
+    runs++;
+    if (runs == 1 && getenv("DOUBLEBLOCKS"))
+        goto hstart;
+    
     printf(" ^%s", f2s(lo, 6, c_green));
     for (size_t i = 0; i < h_size-8; i++)
         printf(" ");

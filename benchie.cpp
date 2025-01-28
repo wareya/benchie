@@ -6,6 +6,8 @@
 #include <vector>
 #include <string>
 #include <chrono>
+#include <stdarg.h>
+
 using namespace std;
 
 #ifndef _WIN32
@@ -73,11 +75,13 @@ using namespace std;
             return WEXITSTATUS(status);
         }
     }
+    
 #else
     #define redir_str ""
     #define WIN32_LEAN_AND_MEAN
     #define VC_EXTRALEAN
     #include <windows.h>
+    
     bool supports_color()
     {
         if (getenv("FORCECOLOR"))
@@ -268,6 +272,11 @@ int main(int argc, char ** argv)
 {
 #ifdef _WIN32
     SetConsoleOutputCP(CP_UTF8);
+    
+    HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
+    DWORD mode = 0;
+    GetConsoleMode(console, &mode);
+    SetConsoleMode(console, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 #endif
     if (argc == 1)
         return puts("usage: benchify \"cmd1\" \"cmd2\" ... [-w N|--warmup N] [-c N|--count N]");
@@ -327,10 +336,9 @@ int main(int argc, char ** argv)
         c_reset = "\033[0m";
         c_green = "\033[92m";
         c_blue = "\033[36m";
-        c_pink = "\033[35m";
+        c_pink = "\033[95m\033[2m";
         c_yellow = "\033[93m";
     }
-    
     
     for (size_t i = 0; i < cmds.size(); i++)
     {
